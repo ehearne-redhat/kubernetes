@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -208,6 +209,10 @@ func (c *DynamicFileCAContent) handleWatchEvent(e fsnotify.Event, w *fsnotify.Wa
 		return nil
 	}
 	if err := w.Remove(c.filename); err != nil {
+		// check to see if err is about non-existent file watcher (occurs when file gets moved during cluster set up)
+		if strings.Contains(err.Error(), "can't remove non-existent watcher") {
+			return nil // don't log
+		}
 		klog.InfoS("Failed to remove file watch, it may have been deleted", "file", c.filename, "err", err)
 	}
 	if err := w.Add(c.filename); err != nil {
